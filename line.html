@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+/*Defining headline style properties by selectin the id title*/  
+#title {
+  font-size: 40px;
+	font-family: 'PT Sans Narrow';
+  font-weight: 700;
+  color: #000;
+}
+
+#subtitle {
+  font-size: 20px; 
+  font-family: 'PT Sans Narrow';
+  color: #bbb;
+}
+
+body {
+  font-family: 'PT Sans Narrow', cursive;
+}
+
+.axis line {
+/*   fill: none; */
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+  
+.axis text {
+   font-size: 12px;
+}
+  
+/*Deleting the axis paths by selecting the class axis path (this is automatically create thorugh the d3.axis function)*/
+.axis path {
+  display: none;
+}
+
+/*Definig line style properties by selecting the class line*/
+.line {
+  fill: none;
+  stroke: #F28C00;
+  stroke-width: 2px;
+}
+
+/*Definig circle style properties by selecting the class line*/
+.focus circle {
+  fill: #f435a8;
+}
+</style>
+
+<!-- Create a paragraph with the id title -->
+<p id="title" style="position: absolute; margin-left: 6px; margin-top: 2px;"> BOOK TITLES PER CAPITA </p>
+<body>
+
+<p id="subtitle" style="position: absolute; margin-left: 6px; margin-top: 50px">Unique booktitles per million inhabitants, 1900-2009</p>
+
+  <!-- Create the starting butto -->
+<!-- <button id="start" style="position: absolute; margin-left: 6px; margin-top: 80px;">Start</button> -->
+<!-- Create the reset button -->  
+<!-- <button id="reset" style="position: absolute; margin-left: 60px; margin-top: 80px">Reset</button> -->
+<!-- Create a paragraph with a general discription -->  
+
+  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+  
+<script>
+//Defining the margin conventions and width and height 
+var margin = {top: 150, right: 20, bottom: 30, left: 50},
+    width = 700 - margin.left - margin.right,
+    height = 450 - margin.top - margin.bottom;
+
+// Defining the format for the time variable
+var parseDate = d3.time.format("%Y").parse;
+
+//Define the range of the x time scaling depending on the width
+var x = d3.time.scale()
+          .range([0, width]);
+  
+//Define the range of the y scaling depending on the height 
+var y = d3.scale.linear()
+          .range([height, 0]);
+
+//Define the x Axis, applying the scaling, defining orientation and number of ticks
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+		.ticks(8);
+  
+//Define the x Axis, applying the scaling, defining orientation and number of ticks
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+		.ticks(2);
+
+//Saving the line accessor function in a variable called "line", here both visual encodings are defined through the functions: x position = variable date, y position = variable = rate 
+var line = d3.svg.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.rate); });
+    
+//Creating the container by selecting the body appending an SVG using the margin convention setting and then appending the group element in order to move it to the right and down  
+var svg = d3.select("body")
+						.append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+//Dataloading with error message handling, be aware that all the data are now saved in "data"
+d3.csv("data.csv", function(error, data) {
+  if (error) throw error;
+  console.log(data);
+
+//Make sure data have the correct formating date (as definded above in the variable parseDate) and rate should be numeric. Withe the "forEach" we call every element of the "data" and use them in the function as an input called just "d". In order to call a single variable we need to use  d.date for example
+  data.forEach(function(d) {
+    d.date = parseDate(d.Year);
+    d.rate = +d.mean;
+  });
+
+//Defining the domain as min and max of the corresponding variables for the X and Y scaling 
+x.domain(d3.extent(data, function(d) { return d.date; }));
+y.domain(d3.extent(data, function(d) { return d.rate; }));
+
+//Calling the X axis
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+  
+//Calling the y axis and adding a labeling
+  svg.append("g")
+     .attr("class", "y axis")
+     .call(yAxis)
+     .append("text")
+//      .attr("transform", "rotate(-90)")
+     .attr("y", 38)
+     .attr("x", 20)
+     .attr("dy", ".71em")
+     .style("text-anchor", "start")
+     .text("number");
+
+// Start Animation on Click by seclecting the button with the id start
+//   d3.select("#start")
+//     .on("click", function() {
+
+//Drawing the path connecting to the accesor function line 
+var path = svg.append("path")
+              .datum(data) // data binding
+              .attr("class", "line")
+              .attr("d", line);
+
+// Variable to Hold Total Length
+var totalLength = path.node().getTotalLength();
+
+// Set properties of Dash Array and Dash Offset and initiate Transition
+    path
+      .attr("stroke-dasharray", totalLength + " " + totalLength)
+      .attr("stroke-dashoffset", totalLength)
+      .transition() 
+      .duration(3000) 
+      .ease("linear") 
+      .attr("stroke-dashoffset", 0); 
+
+//  });
+
+// Reset Animation by removing the line
+  d3.select("#reset")
+    .on("click", function() {d3.select(".line").remove();
+  });
+});
+
+</script>
